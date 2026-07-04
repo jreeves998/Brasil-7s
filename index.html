@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brasil Rugby 7s — Coaching Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --paper:#F7F4EC; --paper-dim:#EFEADA; --ink:#15170F; --ink-mid:#4B4D3F; --ink-light:#8B8C74;
+  --green-deep:#0B3B24; --green:#155C36; --green-tint:#E4EEE6;
+  --gold:#F2C230; --gold-deep:#B9860B; --gold-tint:#FDF3D6;
+  --line:#DDD6C0; --red:#A3311F; --red-tint:#F8EBE6; --white:#FFFFFF;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 60px;}
+.hub-header{background:var(--green-deep);padding:22px 0 0;}
+.hub-header-inner{max-width:1180px;margin:0 auto;padding:0 20px;}
+.hub-brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;justify-content:space-between;}
+.hub-brand-left{display:flex;align-items:baseline;gap:12px;}
+.hub-brand h1{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:var(--white);margin:0;}
+.hub-brand span{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;}
+.hub-status{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.55);letter-spacing:.5px;padding-bottom:4px;}
+.hub-status button{font-family:'DM Mono',monospace;font-size:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:var(--white);padding:4px 10px;border-radius:5px;cursor:pointer;margin-left:8px;}
+.hub-status button:hover{background:rgba(255,255,255,.2);}
+.hub-tabs{display:flex;gap:2px;margin-top:20px;overflow-x:auto;}
+.hub-tab{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:rgba(255,255,255,.55);background:transparent;border:none;padding:12px 20px;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all .15s;}
+.hub-tab:hover{color:rgba(255,255,255,.85);}
+.hub-tab.active{color:var(--white);border-bottom-color:var(--gold);}
+.tab-pane{display:none;padding-top:28px;}
+.tab-pane.active{display:block;}
+.pane-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+.pane-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--green-deep);}
+.pane-sub{font-size:12.5px;color:var(--ink-light);margin-top:2px;}
+.card{background:var(--white);border:1px solid var(--line);border-radius:12px;}
+.setup-note{background:var(--gold-tint);border:1px solid var(--gold-deep);border-radius:10px;padding:16px 18px;font-size:12.5px;color:var(--ink-mid);line-height:1.6;}
+.setup-note code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;}
+.error-note{background:var(--red-tint);border:1px solid var(--red);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--red);}
+
+/* Calendar */
+.cal-nav{display:flex;align-items:center;gap:14px;}
+.cal-nav button{font-family:'Bebas Neue',sans-serif;font-size:16px;background:var(--white);border:1px solid var(--line);border-radius:8px;width:34px;height:34px;cursor:pointer;color:var(--green-deep);}
+.cal-nav button:hover{background:var(--green-tint);}
+.cal-month-label{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--ink);min-width:170px;text-align:center;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:18px;}
+.cal-dow{text-align:center;font-size:9.5px;font-weight:700;letter-spacing:1.5px;color:var(--ink-light);padding:4px 0;}
+.cal-cell{min-height:88px;border:1px solid var(--line);border-radius:10px;background:var(--white);padding:8px;position:relative;}
+.cal-cell.empty{background:transparent;border-color:transparent;}
+.cal-cell.today{border-color:var(--green);border-width:2px;}
+.cal-cell.has-focus{background:var(--gold-tint);border-color:var(--gold-deep);}
+.cal-daynum{font-size:12px;font-weight:700;color:var(--ink);}
+.cal-cell.today .cal-daynum{color:var(--green);}
+.cal-focus-txt{font-size:10.5px;color:var(--ink-mid);margin-top:5px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+
+/* Squad */
+.squad-table{width:100%;border-collapse:collapse;}
+.squad-table th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-light);padding:10px 12px;border-bottom:2px solid var(--green-deep);}
+.squad-table td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;}
+.squad-table tr:hover td{background:var(--paper-dim);}
+.pos-pill{font-size:10px;font-weight:700;letter-spacing:.5px;padding:3px 10px;border-radius:12px;background:var(--green-tint);color:var(--green-deep);text-transform:uppercase;}
+
+/* Game model */
+.gm-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:760px){.gm-grid{grid-template-columns:1fr;}}
+.gm-card{padding:20px 22px;}
+.gm-card-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--green-deep);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--gold);}
+.gm-item{padding:10px 0;border-bottom:1px solid var(--paper-dim);}
+.gm-item:last-child{border-bottom:none;}
+.gm-item-title{font-size:13px;font-weight:600;color:var(--ink);}
+.gm-item-detail{font-size:12px;color:var(--ink-mid);margin-top:3px;line-height:1.5;}
+.img-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:14px;}
+.img-item{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper-dim);}
+.img-item img{width:100%;height:110px;object-fit:cover;display:block;}
+.img-item-cap{font-size:10.5px;color:var(--ink-mid);padding:6px 8px;}
+
+/* Tournament */
+.tourn-pills{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.tourn-pill{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;padding:9px 20px;border-radius:20px;border:1px solid var(--line);background:var(--white);color:var(--ink-mid);cursor:pointer;}
+.tourn-pill.active{background:var(--green-deep);border-color:var(--green-deep);color:var(--white);}
+.tourn-body{display:none;padding:22px;}
+.tourn-body.active{display:block;}
+.tourn-field{margin-bottom:18px;}
+.tourn-field:last-child{margin-bottom:0;}
+.tourn-field-label{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-light);margin-bottom:6px;}
+.tourn-field-content{font-size:13px;color:var(--ink);line-height:1.6;white-space:pre-wrap;}
+
+.empty-note{font-size:12.5px;color:var(--ink-light);font-style:italic;padding:14px 0;}
+</style>
+</head>
+<body>
+
+<div class="hub-header">
+  <div class="hub-header-inner">
+    <div class="hub-brand">
+      <div class="hub-brand-left">
+        <h1>BRASIL RUGBY 7s</h1>
+        <span>Coaching Hub</span>
+      </div>
+      <div class="hub-status" id="hub-status">Loading…<button onclick="loadAll()">Refresh now</button></div>
+    </div>
+    <div class="hub-tabs">
+      <button class="hub-tab active" data-tab="calendar" onclick="switchTab('calendar')">CALENDAR</button>
+      <button class="hub-tab" data-tab="squad" onclick="switchTab('squad')">SQUAD</button>
+      <button class="hub-tab" data-tab="gamemodel" onclick="switchTab('gamemodel')">GAME MODEL</button>
+      <button class="hub-tab" data-tab="tournament" onclick="switchTab('tournament')">TOURNAMENT PREP</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- CALENDAR -->
+  <div class="tab-pane active" id="pane-calendar">
+    <div class="pane-head">
+      <div>
+        <div class="pane-title">SESSION FOCUS CALENDAR</div>
+        <div class="pane-sub">Pulled from the "Calendar" tab of your Sheet.</div>
+      </div>
+      <div class="cal-nav">
+        <button onclick="calShiftMonth(-1)">‹</button>
+        <div class="cal-month-label" id="cal-month-label"></div>
+        <button onclick="calShiftMonth(1)">›</button>
+      </div>
+    </div>
+    <div id="cal-setup"></div>
+    <div class="cal-grid" id="cal-dow-row"></div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+  <!-- SQUAD -->
+  <div class="tab-pane" id="pane-squad">
+    <div class="pane-head">
+      <div>
+        <div class="pane-title">SQUAD</div>
+        <div class="pane-sub">Pulled from the "Squad" tab of your Sheet.</div>
+      </div>
+    </div>
+    <div id="squad-setup"></div>
+    <div class="card" style="padding:8px 4px;">
+      <table class="squad-table">
+        <thead><tr><th>Name</th><th>Position</th><th>Notes</th></tr></thead>
+        <tbody id="squad-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GAME MODEL -->
+  <div class="tab-pane" id="pane-gamemodel">
+    <div class="pane-head">
+      <div>
+        <div class="pane-title">GAME MODEL</div>
+        <div class="pane-sub">Pulled from the "Game Model" tab of your Sheet.</div>
+      </div>
+    </div>
+    <div id="gm-setup"></div>
+    <div class="gm-grid">
+      <div class="card gm-card">
+        <div class="gm-card-title">PRINCIPLES</div>
+        <div id="gm-principles"></div>
+      </div>
+      <div class="card gm-card">
+        <div class="gm-card-title">TACTICS</div>
+        <div id="gm-tactics"></div>
+      </div>
+    </div>
+    <div class="card gm-card" style="margin-top:20px;">
+      <div class="gm-card-title">TACTICAL IMAGES</div>
+      <div class="img-gallery" id="img-gallery"></div>
+    </div>
+  </div>
+
+  <!-- TOURNAMENT PREP -->
+  <div class="tab-pane" id="pane-tournament">
+    <div class="pane-head">
+      <div>
+        <div class="pane-title">TOURNAMENT PREPARATION</div>
+        <div class="pane-sub">Pulled from the "Tournament Prep" tab of your Sheet.</div>
+      </div>
+    </div>
+    <div id="tourn-setup"></div>
+    <div class="tourn-pills" id="tourn-pills"></div>
+    <div id="tourn-bodies"></div>
+  </div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   CONFIG — paste your 4 published CSV URLs here.
+   Google Sheets → File → Share → Publish to web → pick the tab → CSV → Publish
+   ══════════════════════════════════════════════════════════════ */
+const SHEET_ID = "1U0N-ufnKdfbZ80Kun3v3PLjCUUceFoWcT8F_W9x7nMc";
+const SHEET_URLS = {
+  calendar:    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=1464999403`,
+  squad:       `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=869240206`,
+  gamemodel:   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=302366694`,
+  tournament:  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=458723584`
+};
+const REFRESH_MS = 60000;
+/* ══════════════════════════════════════════════════════════════ */
+
+let calendarRows = [], squadRows = [], gameModelRows = [], tournamentRows = [];
+let calYear, calMonth;
+let activeTourn = null;
+
+function switchTab(name){
+  document.querySelectorAll('.hub-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active', p.id==='pane-'+name));
+}
+function isPlaceholder(url){ return !url || url.indexOf('PASTE_') === 0; }
+function setupNote(url){
+  return `<div class="setup-note">This tab isn't connected yet. Publish the matching tab in Google Sheets to CSV
+    (File → Share → Publish to web → CSV) and paste the URL into <code>SHEET_URLS</code> at the top of this file.</div>`;
+}
+
+async function fetchCsv(url){
+  const res = await fetch(url, {cache:"no-store"});
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const text = await res.text();
+  const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+  return parsed.data;
+}
+
+/* ── CALENDAR ─────────────────────────────────────────── */
+function parseSheetDate(s){
+  if(!s) return null;
+  const parts = String(s).trim().split(/[\/\-]/);
+  if(parts.length!==3) return null;
+  const [d,m,y] = parts.map(x=>parseInt(x,10));
+  if(!d||!m||!y) return null;
+  return new Date(y, m-1, d);
+}
+function dateKey(dt){ return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
+function renderCalendarDow(){
+  document.getElementById('cal-dow-row').innerHTML = ['MON','TUE','WED','THU','FRI','SAT','SUN'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
+}
+function renderCalendarGrid(){
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent = `${MONTHS[calMonth]} ${calYear}`;
+  const focusMap = {};
+  calendarRows.forEach(row => {
+    const dt = parseSheetDate(row.Date);
+    if(dt && row.Focus) focusMap[dateKey(dt)] = row.Focus;
+  });
+  const firstDow = (new Date(calYear, calMonth, 1).getDay() + 6) % 7;
+  const totalDays = new Date(calYear, calMonth+1, 0).getDate();
+  const todayKey = dateKey(new Date());
+  let html = '';
+  for(let i=0;i<firstDow;i++) html += `<div class="cal-cell empty"></div>`;
+  for(let d=1; d<=totalDays; d++){
+    const key = dateKey(new Date(calYear, calMonth, d));
+    const focus = focusMap[key];
+    const isToday = key === todayKey;
+    html += `<div class="cal-cell ${focus?'has-focus':''} ${isToday?'today':''}">
+      <div class="cal-daynum">${d}</div>
+      ${focus ? `<div class="cal-focus-txt">${escapeHtml(focus)}</div>` : ''}
+    </div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+function calShiftMonth(dir){
+  calMonth += dir;
+  if(calMonth<0){ calMonth=11; calYear--; }
+  if(calMonth>11){ calMonth=0; calYear++; }
+  renderCalendarGrid();
+}
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── SQUAD ────────────────────────────────────────────── */
+function renderSquad(){
+  const tbody = document.getElementById('squad-tbody');
+  const rows = squadRows.filter(r => r.Name && r.Name.trim());
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="3"><div class="empty-note">No players in the Sheet yet.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(p => `
+    <tr>
+      <td>${escapeHtml(p.Name)}</td>
+      <td>${p.Position ? `<span class="pos-pill">${escapeHtml(p.Position)}</span>` : ''}</td>
+      <td>${escapeHtml(p.Notes||'')}</td>
+    </tr>`).join('');
+}
+
+/* ── GAME MODEL ───────────────────────────────────────── */
+function renderGameModel(){
+  const principles = gameModelRows.filter(r => (r.Category||'').trim().toLowerCase() === 'principle' && r.Title);
+  const tactics = gameModelRows.filter(r => (r.Category||'').trim().toLowerCase() === 'tactic' && r.Title);
+  const images = gameModelRows.filter(r => (r.Category||'').trim().toLowerCase() === 'image' && r.Details);
+
+  document.getElementById('gm-principles').innerHTML = principles.length
+    ? principles.map(p=>`<div class="gm-item"><div class="gm-item-title">${escapeHtml(p.Title)}</div><div class="gm-item-detail">${escapeHtml(p.Details||'')}</div></div>`).join('')
+    : `<div class="empty-note">No principles added yet.</div>`;
+
+  document.getElementById('gm-tactics').innerHTML = tactics.length
+    ? tactics.map(p=>`<div class="gm-item"><div class="gm-item-title">${escapeHtml(p.Title)}</div><div class="gm-item-detail">${escapeHtml(p.Details||'')}</div></div>`).join('')
+    : `<div class="empty-note">No tactics added yet.</div>`;
+
+  document.getElementById('img-gallery').innerHTML = images.length
+    ? images.map(im=>`<div class="img-item"><img src="${escapeHtml(im.Details)}" alt="${escapeHtml(im.Title)}" onerror="this.style.opacity=0.15"><div class="img-item-cap">${escapeHtml(im.Title||'Untitled')}</div></div>`).join('')
+    : `<div class="empty-note">No tactical images added yet.</div>`;
+}
+
+/* ── TOURNAMENT PREP ──────────────────────────────────── */
+function renderTournament(){
+  const byTourn = {};
+  tournamentRows.forEach(r => {
+    if(!r.Tournament) return;
+    byTourn[r.Tournament] = byTourn[r.Tournament] || [];
+    byTourn[r.Tournament].push(r);
+  });
+  const names = Object.keys(byTourn);
+  if(!names.length){
+    document.getElementById('tourn-pills').innerHTML = '';
+    document.getElementById('tourn-bodies').innerHTML = `<div class="empty-note">No tournaments in the Sheet yet.</div>`;
+    return;
+  }
+  if(!activeTourn || !names.includes(activeTourn)) activeTourn = names[0];
+  document.getElementById('tourn-pills').innerHTML = names.map(n=>
+    `<button class="tourn-pill ${n===activeTourn?'active':''}" onclick="switchTourn('${n.replace(/'/g,"\\'")}')">${escapeHtml(n)}</button>`).join('');
+  document.getElementById('tourn-bodies').innerHTML = names.map(n => `
+    <div class="card tourn-body ${n===activeTourn?'active':''}" data-t="${escapeHtml(n)}">
+      ${byTourn[n].map(f => `
+        <div class="tourn-field">
+          <div class="tourn-field-label">${escapeHtml(f.Field||'')}</div>
+          <div class="tourn-field-content">${escapeHtml(f.Content||'—')}</div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+function switchTourn(name){
+  activeTourn = name;
+  document.querySelectorAll('.tourn-pill').forEach(b=>b.classList.toggle('active', b.textContent.trim()===name));
+  document.querySelectorAll('.tourn-body').forEach(b=>b.classList.toggle('active', b.dataset.t===name));
+}
+
+/* ── LOAD ─────────────────────────────────────────────── */
+async function loadAll(){
+  const status = document.getElementById('hub-status');
+  status.innerHTML = 'Refreshing…<button onclick="loadAll()">Refresh now</button>';
+
+  document.getElementById('cal-setup').innerHTML = isPlaceholder(SHEET_URLS.calendar) ? setupNote() : '';
+  document.getElementById('squad-setup').innerHTML = isPlaceholder(SHEET_URLS.squad) ? setupNote() : '';
+  document.getElementById('gm-setup').innerHTML = isPlaceholder(SHEET_URLS.gamemodel) ? setupNote() : '';
+  document.getElementById('tourn-setup').innerHTML = isPlaceholder(SHEET_URLS.tournament) ? setupNote() : '';
+
+  const tasks = [
+    ['calendar', SHEET_URLS.calendar],
+    ['squad', SHEET_URLS.squad],
+    ['gamemodel', SHEET_URLS.gamemodel],
+    ['tournament', SHEET_URLS.tournament]
+  ];
+  let errors = [];
+  for(const [key, url] of tasks){
+    if(isPlaceholder(url)) continue;
+    try{
+      const rows = await fetchCsv(url);
+      if(key==='calendar') calendarRows = rows;
+      if(key==='squad') squadRows = rows;
+      if(key==='gamemodel') gameModelRows = rows;
+      if(key==='tournament') tournamentRows = rows;
+    }catch(e){
+      errors.push(key);
+    }
+  }
+
+  renderCalendarGrid();
+  renderSquad();
+  renderGameModel();
+  renderTournament();
+
+  const now = new Date().toLocaleTimeString();
+  status.innerHTML = (errors.length ? `Error loading: ${errors.join(', ')} · ` : '') +
+    `Last updated ${now}<button onclick="loadAll()">Refresh now</button>`;
+}
+
+function init(){
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  renderCalendarDow();
+  loadAll();
+  setInterval(loadAll, REFRESH_MS);
+}
+init();
+</script>
+</body>
+</html>
